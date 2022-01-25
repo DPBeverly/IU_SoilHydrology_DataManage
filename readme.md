@@ -11,5 +11,9 @@ Obejective of these tools is to:
 
 3. Summarize data and offer simple analysis tools for comparing soils
 
+This project contains:
 
+
+R_Ksat_DataMange_Stable.R (Stable version for use in the lab)
+R_Ksat_DataMange_Development.R (NOT STABLE!! Development version for use improving analysis)
 
