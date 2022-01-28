@@ -198,7 +198,7 @@ myMeas <- unique(Fdat$File)
 Fdat$mymaterials <- as.factor(Fdat$mymaterials)
 
 ##//Take in a look
-cc <- Fdat$mymaterials=="5050" & Fdat$Fitting_cm>0 & Fdat$FittingParameter_r2>=0.999
+cc <- Fdat$mymaterials=="sand" & Fdat$Fitting_cm>0 & Fdat$FittingParameter_r2>=0.999
 plot(Fdat$PressureHead_cm[cc] ~ Fdat$Runtime_s[cc], col = as.factor(Fdat$myreps), pch  = 15, cex = 1.5)
 
 
