@@ -21,7 +21,7 @@ theme_set(theme_minimal())
 GoAvsGo <- c("#6F263D", "#236192", "#A2AAAD", "#000000")
 
 ##//Where is the data
-setwd("C:/Users/knlabadm/Dropbox/SoilLab/Data/KSat/RawData/LabTesting")
+setwd("D:/Dropbox/Projects/Indiana/SoilLab/Data/KSat/RawData/Griffy_20220216")
 dir()
 
 ##//List of files in the directory
@@ -171,42 +171,94 @@ for(k in 1:length(Flist)){
 ##//Pulling out soil information, sample depth, and replication  
 mylist <- str_split(Fdat$File, "_")
 
-mymaterials <- c()
+#mymaterials <- c()
 myreps <- c()
+mylocates <- c()
+myruns <- c()
+
 #myDepths <- c() ##//Commented out during lab testing phase
 
 ##//Loop through all files
 for(i in 1:length(mylist)){
-  material <- mylist[[i]][4]
-  rep <- mylist[[i]][5]
+  locate <- mylist[[i]][3]
+ # material <- mylist[[i]][4]
+  rep <- mylist[[i]][4]
+  run <- mylist[[i]][5]
+  
   #depth <- mylist[[i]][XXXXX]
   
-  mymaterials <- rbind(mymaterials, material)
+  mylocates <- rbind(mylocates, locate)
+  myruns <- rbind(myruns, run)
   myreps <- rbind(myreps, rep)
   #myDepths <- rbind(myDepths, depth)
   
 }
 
 ##//Combining vectors
-Fdat <- cbind(Fdat, mymaterials, myreps)
+Fdat <- cbind(Fdat, mylocates, myreps, myextras)
 
 #######################################################################################
 #######################################################################################
 ##//Simple plots for viewing raw obsevations
 ##//Filter
 myMeas <- unique(Fdat$File)
-Fdat$mymaterials <- as.factor(Fdat$mymaterials)
+Fdat$mylocates <- as.factor(Fdat$mylocates)
+
+Fdat$Runtime_s            
+Fdat$PressureHead_cm        
+Fdat$Fitting_cm
+Fdat$Temp_C
+Fdat$Date_ct
+Fdat$File
+
+
+Fdat$H_end_abs_cm <- as.numeric(Fdat$H_end_abs_cm)
+Fdat$H_end_rel <- as.numeric(Fdat$H_end_rel)
+Fdat$dH_min_cm <- as.numeric(Fdat$dH_min_cm)
+Fdat$dH_ini_cm <- as.numeric(Fdat$dH_ini_cm)
+Fdat$A_bur_cm_2 <- as.numeric(Fdat$A_bur_cm_2)
+Fdat$A_cap_in_cm_2 <- as.numeric(Fdat$A_cap_in_cm_2)
+Fdat$A_sample_cm_2 <- as.numeric(Fdat$A_sample_cm_2)
+Fdat$L_bur_cm <- as.numeric(Fdat$L_bur_cm)
+Fdat$L_sample_cm <- as.numeric(Fdat$L_sample_cm)
+Fdat$L_plate_Bottom_cm <- as.numeric(Fdat$L_plate_Bottom_cm)
+Fdat$L_plate_Top_cm <- as.numeric(Fdat$L_plate_Top_cm)
+Fdat$T_ref_C <- as.numeric(Fdat$T_ref_C)
+Fdat$K_plate_cm_d <- as.numeric(Fdat$K_plate_cm_d)
+Fdat$Max_Auto_Offset_cm <- as.numeric(Fdat$Max_Auto_Offset_cm)
+Fdat$TriggerAuto_Offset_cm <- as.numeric(Fdat$TriggerAuto_Offset_cm)
+Fdat$FittingParameter_a_cm <- as.numeric(Fdat$FittingParameter_a_cm)
+Fdat$FittingParameter_b_s <- as.numeric(Fdat$FittingParameter_b_s)
+Fdat$FittingParameter_c_cm <- as.numeric(Fdat$FittingParameter_c_cm)
+Fdat$FittingParameter_r2 <- as.numeric(Fdat$FittingParameter_r2)
+Fdat$KsTotal_cm_d <- as.numeric(Fdat$KsTotal_cm_d)
+Fdat$KsSoil_cm_d <- as.numeric(Fdat$KsSoil_cm_d)
+Fdat$KsSoil_m_s <- as.numeric(Fdat$KsSoil_m_s)
+Fdat$Norm_KsSoil_cm_d <- as.numeric(Fdat$Norm_KsSoil_cm_d)
+Fdat$Norm_KsSoil_m_s <- as.numeric(Fdat$Norm_KsSoil_m_s)
+Fdat$mylocates
+Fdat$myreps
+Fdat$Runtime_h <- Fdat$Runtime_s / (60*60) 
+
 
 ##//Take in a look
-cc <- Fdat$mymaterials=="5050" & Fdat$Fitting_cm>0 & Fdat$FittingParameter_r2>=0.999
+cc <- Fdat$mylocates!="downslope" & Fdat$Fitting_cm>0 & Fdat$FittingParameter_r2>=0.999 & Fdat$myreps!="r2"
 plot(Fdat$PressureHead_cm[cc] ~ Fdat$Runtime_s[cc], col = as.factor(Fdat$myreps), pch  = 15, cex = 1.5)
 
 
 ##//Look at it in ggplot
+unique(Fdat$File[Fdat$mylocates=="griffy"])
+unique(Fdat$File[Fdat$mylocates=="downslope"])
+
+unique(Fdat$File[Fdat$mylocates!="downslope"])
+Fdat$File[Fdat$mylocates=="griffy"]
+
+Fdat$mylocates[Fdat$mylocates=="griffy"] <- "griffycontrol"
+
 
 ggplot() +
   #geom_abline(slope = 1, intercept = 0, size = 3, alpha = 0.5, linetype = "dashed") + 
-  geom_point(data = Fdat[cc,], aes(x = Runtime_s, y = PressureHead_cm, color = Temp_C, shape = myreps),
+  geom_point(data = Fdat[Fdat$mylocates!="downslope",], aes(x = Runtime_s, y = PressureHead_cm, color = Temp_C, shape = myreps),
              show.legend = TRUE,  size=4) +
   
   #geom_point(data = stp3[cc1,], aes(x=delta_TLeaf , y= QY_FP.x, color=Spp), show.legend = FALSE,  size=2) +
@@ -224,6 +276,185 @@ ggplot() +
         legend.title=element_text("Species",size=30),
         legend.text=element_text(size=30))
 
+
+
+
+###//Summarize the that data
+Fdat_sum1 <- Fdat[Fdat$mylocates!="downslope" & Fdat$Fitting_cm>0 & Fdat$FittingParameter_r2>=0.999,] %>%
+  #dplyr::mutate(day = as.Date(Date_ct, format="%d-%m-%Y")) %>%
+  dplyr::group_by(mylocates) %>% # group by the day column ##//mean looks good
+  dplyr::summarise_if(is.numeric, median, na.rm = TRUE) %>%  
+  na.omit
+
+Fdat_sd <- Fdat[Fdat$mylocates!="downslope" & Fdat$Fitting_cm>0 & Fdat$FittingParameter_r2>=0.999,]  %>%
+  #dplyr::mutate(day = as.Date(Date_ct, format="%d-%m-%Y")) %>%
+  dplyr::group_by(mylocates) %>% # group by the day column ##//mean looks good
+  dplyr::summarise_if(is.numeric, sd, na.rm = TRUE) %>%  
+  na.omit
+
+
+Griffy_DF <- data.frame(Material = c("alexsdownslope", "alexsupslope", "griffycontrol", "griffytde"),
+                        a_param = Fdat_sum1$FittingParameter_a_cm,
+                        a_param_LCI = c(Fdat_sum1$FittingParameter_a_cm[1] - 
+                                          Fdat_sd$FittingParameter_a_cm[1],
+                                        Fdat_sum1$FittingParameter_a_cm[2] - 
+                                          Fdat_sd$FittingParameter_a_cm[2],
+                                        Fdat_sum1$FittingParameter_a_cm[3] - 
+                                          Fdat_sd$FittingParameter_a_cm[3],
+                                        Fdat_sum1$FittingParameter_a_cm[4] - 
+                                          Fdat_sd$FittingParameter_a_cm[4]),
+                        a_param_HCI = c(Fdat_sum1$FittingParameter_a_cm[1] + 
+                                          Fdat_sd$FittingParameter_a_cm[1],
+                                        Fdat_sum1$FittingParameter_a_cm[2] + 
+                                          Fdat_sd$FittingParameter_a_cm[2],
+                                        Fdat_sum1$FittingParameter_a_cm[3] + 
+                                          Fdat_sd$FittingParameter_a_cm[3],
+                                        Fdat_sum1$FittingParameter_a_cm[4] + 
+                                          Fdat_sd$FittingParameter_a_cm[4]),
+                        b_param = Fdat_sum1$FittingParameter_b_s,
+                        b_param_LCI = c(Fdat_sum1$FittingParameter_b_s[1] - 
+                                          Fdat_sd$FittingParameter_b_s[1],
+                                        Fdat_sum1$FittingParameter_b_s[2] - 
+                                          Fdat_sd$FittingParameter_b_s[2],
+                                        Fdat_sum1$FittingParameter_b_s[3] - 
+                                          Fdat_sd$FittingParameter_b_s[3],
+                                        Fdat_sum1$FittingParameter_b_s[4] - 
+                                          Fdat_sd$FittingParameter_b_s[4]),
+                        b_param_HCI = c(Fdat_sum1$FittingParameter_b_s[1] + 
+                                          Fdat_sd$FittingParameter_b_s[1],
+                                        Fdat_sum1$FittingParameter_b_s[2] + 
+                                          Fdat_sd$FittingParameter_b_s[2],
+                                        Fdat_sum1$FittingParameter_b_s[3] + 
+                                          Fdat_sd$FittingParameter_b_s[3],
+                                        Fdat_sum1$FittingParameter_b_s[4] + 
+                                          Fdat_sd$FittingParameter_b_s[4]))
+
+myplots <- unique(Griffy_DF$Material)
+
+MyTimes <- seq(0,500, by = 1)
+Griffydouts <- c() 
+i = 1
+for(i in 1:length(myplots)){
+Pressure <- Griffy_DF$a_param[Griffy_DF$Material==myplots[i]] * 
+  exp(Griffy_DF$b_param[Griffy_DF$Material==myplots[i]] * 
+        MyTimes)
+LPressure <- Griffy_DF$a_param_LCI[Griffy_DF$Material==myplots[i]] * 
+  exp(Griffy_DF$b_param_LCI[Griffy_DF$Material==myplots[i]] * 
+        MyTimes)
+HPressure <- Griffy_DF$a_param_HCI[Griffy_DF$Material==myplots[i]] * 
+  exp(-abs(Griffy_DF$b_param_HCI[Griffy_DF$Material==myplots[i]]) *
+        MyTimes)
+
+Griffydouts <- rbind(Griffydouts, data.frame(Material = myplots[i],
+                    Time = MyTimes, 
+                    Mean_Flow = Pressure,
+                    Flow_LCI = LPressure,
+                    Flow_HCI = HPressure))
+
+}
+plot(Griffydouts$Time[Griffydouts$Material!="alexsupslope"], 
+     Griffydouts$Mean_Flow[Griffydouts$Material!="alexsupslope"], 
+     ylim = c(0,7))
+
+lines(Griffydouts$Time[Griffydouts$Material!="alexsupslope"],
+      Griffydouts$Flow_LCI[Griffydouts$Material!="alexsupslope"], lwd = 2)
+lines(Griffydouts$Time[Griffydouts$Material!="alexsupslope"],
+      Griffydouts$Flow_HCI[Griffydouts$Material!="alexsupslope"],
+      lwd = 2, col = "blue")
+
+
+
+Fdat_clean <- Fdat[Fdat$mymaterials!="clay",]
+
+
+plot(Fdat_clean$mymaterials, Fdat_clean$KsSoil_cm_d)
+
+
+range(Pressure1[Pressure1<Inf])
+#####################################################
+ggplot() +
+  #geom_abline(slope = 1, intercept = 0, size = 3, alpha = 0.5, linetype = "dashed") + 
+  geom_point(data = Fdat_sum1, aes(x = Runtime_s, y = PressureHead_cm, shape = mymaterials, color = myreps),
+             show.legend = TRUE,  size=4) +
+  
+  #geom_point(data = stp3[cc1,], aes(x=delta_TLeaf , y= QY_FP.x, color=Spp), show.legend = FALSE,  size=2) +
+  #geom_errorbar(data = Rs_plots[Rs_plots$Corr_LinFlux<=10,], aes(x = LinFlux , ymin = Corr_LinFlux_HCI,
+  #                                                             ymax = Corr_LinFlux_LCI, color = Site), show.legend = FALSE,
+  #            size = 1, width = .15)+
+  #geom_abline(slope = 1, intercept = 0, size = 3) + 
+  #xlab(expression(paste("LiCOR Soil Efflux  [", mu, "mol CO" [2], " m"^2, "  s "^-1, "] "  ))) +
+  ylab(expression(paste("Pressure Head  [", "cm", "] "  ))) +
+  #xlim(0,5)+
+  #ylim(0,5)+
+  theme(legend.position = "top",
+        axis.text=element_text(size=30),
+        axis.title=element_text(size=30),
+        legend.title=element_text("Species",size=30),
+        legend.text=element_text(size=30))
+
+
+
+###//Summarize the that data
+Fdat_sum2 <- Fdat_sum1 %>%
+  #dplyr::mutate(day = as.Date(Date_ct, format="%d-%m-%Y")) %>%
+  dplyr::group_by(mymaterials, Runtime_s) %>% # group by the day column ##//mean looks good
+  dplyr::summarise_if(is.numeric, median, na.rm = TRUE) %>%  
+  na.omit
+
+#####################################################
+ggplot() +
+  #geom_abline(slope = 1, intercept = 0, size = 3, alpha = 0.5, linetype = "dashed") + 
+  geom_point(data = Fdat_sum2[Fdat_sum2$mymaterials=="org",], aes(x = Runtime_s, y = PressureHead_cm, shape = mymaterials),
+             show.legend = TRUE,  size=4) +
+  
+  #geom_point(data = stp3[cc1,], aes(x=delta_TLeaf , y= QY_FP.x, color=Spp), show.legend = FALSE,  size=2) +
+  #geom_errorbar(data = Rs_plots[Rs_plots$Corr_LinFlux<=10,], aes(x = LinFlux , ymin = Corr_LinFlux_HCI,
+  #                                                             ymax = Corr_LinFlux_LCI, color = Site), show.legend = FALSE,
+  #            size = 1, width = .15)+
+  #geom_abline(slope = 1, intercept = 0, size = 3) + 
+  #xlab(expression(paste("LiCOR Soil Efflux  [", mu, "mol CO" [2], " m"^2, "  s "^-1, "] "  ))) +
+  ylab(expression(paste("Pressure Head  [", "cm", "] "  ))) +
+  #xlim(0,5)+
+  #ylim(0,5)+
+  theme(legend.position = "top",
+        axis.text=element_text(size=30),
+        axis.title=element_text(size=30),
+        legend.title=element_text("Species",size=30),
+        legend.text=element_text(size=30))
+
+library(SoilHyP)
+
+
+ggplot() +
+  #geom_abline(slope = 1, intercept = 0, size = 3, alpha = 0.5, linetype = "dashed") + 
+  geom_point(data = Fdat_sum2, aes(x = Runtime_s, y = PressureHead_cm, shape = mymaterials),
+             show.legend = TRUE,  size=4) +
+  
+  #geom_point(data = stp3[cc1,], aes(x=delta_TLeaf , y= QY_FP.x, color=Spp), show.legend = FALSE,  size=2) +
+  #geom_errorbar(data = Rs_plots[Rs_plots$Corr_LinFlux<=10,], aes(x = LinFlux , ymin = Corr_LinFlux_HCI,
+  #                                                             ymax = Corr_LinFlux_LCI, color = Site), show.legend = FALSE,
+  #            size = 1, width = .15)+
+  #geom_abline(slope = 1, intercept = 0, size = 3) + 
+  #xlab(expression(paste("LiCOR Soil Efflux  [", mu, "mol CO" [2], " m"^2, "  s "^-1, "] "  ))) +
+  ylab(expression(paste("Pressure Head  [", "cm", "] "  ))) +
+  #xlim(0,5)+
+  #ylim(0,5)+
+  theme(legend.position = "top",
+        axis.text=element_text(size=30),
+        axis.title=element_text(size=30),
+        legend.title=element_text("Species",size=30),
+        legend.text=element_text(size=30))
+
+
+Fdat
+
+names(Fdat)
+
+
+
+
+
+calcKS(V, Tmeas, L, A, dP)
 
 #####################################################################################################
 ###??Enter at your own risk
