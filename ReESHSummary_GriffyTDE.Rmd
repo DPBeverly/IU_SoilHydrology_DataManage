@@ -1,0 +1,395 @@
+---
+title: "ReESH Site Summary: GrowthChamber 2022"
+output: html_document
+theme: cerulean
+---
+
+<!-- <style type="text/css"> -->
+
+<!-- body{ /* Normal  */ -->
+<!--       font-size: 12px; -->
+<!--   } -->
+<!-- td {  /* Table  */ -->
+<!--   font-size: 8px; -->
+<!-- } -->
+<!-- h1.title { -->
+<!--   font-size: 38px; -->
+<!--   color: DarkRed; -->
+<!-- } -->
+<!-- h1 { /* Header 1 */ -->
+<!--   font-size: 28px; -->
+<!--   color: DarkBlue; -->
+<!-- } -->
+<!-- h2 { /* Header 2 */ -->
+<!--     font-size: 22px; -->
+<!--   color: DarkBlue; -->
+<!-- } -->
+<!-- h3 { /* Header 3 */ -->
+<!--   font-size: 18px; -->
+<!--   font-family: "Times New Roman", Times, serif; -->
+<!--   color: DarkBlue; -->
+<!-- } -->
+<!-- code.r{ /* Code block */ -->
+<!--     font-size: 12px; -->
+<!-- } -->
+<!-- pre { /* Code block - determines code spacing between lines */ -->
+<!--     font-size: 14px; -->
+<!-- } -->
+<!-- </style> -->
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Site: IU Growth Chambers
+### Site Contact: Michael Benson IU micbenso@iu.edu
+
+## Site Location
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+#knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+library(ggmap)
+
+myMap <- get_stamenmap(bbox = c(left = -86.4133,
+                                    bottom = 39.8995,
+                                    right = -86.6133,
+                                    top = 40.1274),
+          maptype = "terrain", 
+          crop = FALSE,
+          zoom = 6)
+###//Chechout the map
+#ggmap(myMap)
+
+
+samp_location <- data.frame(lon = c(-86.5133), lat = c(39.1784))
+
+# create a map with a point location for boulder.
+ggmap(myMap) + labs(x = "", y = "") +
+  geom_point(data = samp_location, aes(x = lon, y = lat), 
+             color = "darkred", alpha = 0.7, size = 25, shape = "*",
+             show.legend = FALSE) +
+  guides(fill = FALSE, alpha = FALSE, size = FALSE)
+
+###//For Ameriflux project Sites a second map will be included to represent specific sampling locations
+
+
+```
+Samples were collected from Indiana University Greenhouses to represent the soils being used in the growth chambers
+
+## Soil Texture
+
+## Saturated Hydraulic Conductivity
+
+## Soil Water Retention Curves
+
+Van Genutchen Equation for soil water retention curves
+$$
+\theta=\theta_{r}+\left(\theta_{s}-\theta_{r}\right)\left[1+(\alpha \psi)^{n}\right]^{-(1-\frac{1}{n})}
+$$
+
+Van Genutchen Equation for soil water retention curves
+$$
+\psi=\frac{\sqrt[n]{\left(\frac{\theta_{s}-\theta}{\theta_{r}-\theta_{s}}\right)^{n /(n-1)}-1}}{\alpha}
+$$
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+##//Data analysis of soil water retention curves
+##//Section for estimating parameter coefficients needed for converting soil moisture to
+      ##  soil matric potential
+
+##//Modified from data management for Hyprop and WP4C scripts
+##//Package management
+library(readxl); library(tidyverse); library(lubridate); library(dplyr)
+library(tidyr); library(tidyselect); library(stringr); library(tidybayes)
+library(rstan); library(brms); library(modelr); library(sjPlot); library(sjstats)
+library(MASS); library(scales); library(knitr); library(kableExtra)
+
+##//ggplot theme 
+theme_set(theme_minimal())
+
+##//custom color ramp 
+GoAvsGo <- c("#6F263D", "#236192", "#A2AAAD", "#000000")
+
+##//Where is the data
+##//List of files in the directory
+Flist <- dir("D:/Dropbox/Projects/Indiana/SoilLab/Data/HyProp/HypropExports/Sites/GriffyWoods", 
+             pattern = ".xlsx")
+
+##/ 1 Information
+##/ 2 Measurements
+##/ 3 Spline Points
+##/ 4 Evaluation-WP4 manual
+##/ 5 Evaluation-Retention
+##/ 6 Evaluation-Conductivity
+##/ 7 Evaluation-Conductivity
+##/ 8 Fitting-Retention
+##/ 9 Fitting-Conductivity
+##/ 10 Fitting-Conductivity
+##/ 11 Fitting-Parameter value
+##/ 12 FittingCorrelationMatrix
+##/ 13 Fitting-Statistical analysis
+##/ 14 Base Points-Retention
+k = 1
+##//Meta Data
+text <- read_xlsx(paste("D:/Dropbox/Projects/Indiana/SoilLab/Data/HyProp/HypropExports/Sites/GriffyWoods", 
+      Flist[k],  sep = "/"), sheet = 1)
+##//Just WP4C data
+wp4 <- read_xlsx(paste("D:/Dropbox/Projects/Indiana/SoilLab/Data/HyProp/HypropExports/Sites/GriffyWoods", 
+      Flist[k],  sep = "/"), sheet = 4)
+##//All Raw data
+dats <- read_xlsx(paste("D:/Dropbox/Projects/Indiana/SoilLab/Data/HyProp/HypropExports/Sites/GriffyWoods", 
+      Flist[k],  sep = "/"), sheet = 5)
+##//Fitted Vanaguchen curves
+fits <- read_xlsx(paste("D:/Dropbox/Projects/Indiana/SoilLab/Data/HyProp/HypropExports/Sites/GriffyWoods", 
+      Flist[k],  sep = "/"), sheet = 8)
+
+##//Building the raw data dataframes
+d_fit_out <- c()
+d_raw_out <- c()
+for(k in 1:length(Flist)){
+  
+text <- read_xlsx(paste("D:/Dropbox/Projects/Indiana/SoilLab/Data/HyProp/HypropExports/Sites/GriffyWoods", 
+      Flist[k],  sep = "/"), sheet = 1)
+wp4 <- read_xlsx(paste("D:/Dropbox/Projects/Indiana/SoilLab/Data/HyProp/HypropExports/Sites/GriffyWoods", 
+      Flist[k],  sep = "/"), sheet = 4)
+
+dats <- read_xlsx(paste("D:/Dropbox/Projects/Indiana/SoilLab/Data/HyProp/HypropExports/Sites/GriffyWoods", 
+      Flist[k],  sep = "/"), sheet = 5)
+fits <- read_xlsx(paste("D:/Dropbox/Projects/Indiana/SoilLab/Data/HyProp/HypropExports/Sites/GriffyWoods", 
+      Flist[k],  sep = "/"), sheet = 8)
+
+##//Isolating the meta data
+Sample = text$Value[2]
+MeasureStart = text$Value[3]
+MeasureEnd = text$Value[4]
+MeasureTime = text$Value[5]
+Units = text$Value[6]
+Software = text$Value[7]
+GeomParameters = text$Value[8]
+SoilSurfArea_cm2 = text$Value[9]
+SoilColumnHeight_cm = text$Value[10]
+Vol_cm3 = text$Value[11]
+LowerTensiometer_cm = text$Value[12]
+UpperTensiometer_cm = text$Value[13]
+HYPROP_Parameters = text$Value[14]                                      
+MeasurementHeadNetWeight_g = text$Value[15]                       
+EmptySoilSamplingRingWeight_g = text$Value[16]                  
+AirEntryPressureUpperTensiometer_bar = text$Value[17]         
+AirEntryPressureLowerTensiometer_bar = text$Value[18]              
+DensitySolidSubstance_g_cm3 = text$Value[19]                     
+StatisticalAnalysis = text$Value[20]                                
+Tensiometer_hPa = text$Value[21]                                      
+Scale_g = text$Value[22]                                     
+SensorUnitInformation = text$Value[23]                                 
+Busnumber = text$Value[24]                                   
+Subaddress = text$Value[25]                                             
+SerialNumber = text$Value[26]                                           
+SensorUnitName = text$Value[27]                                    
+FirmwareVersion = text$Value[28]                                    
+ScaleSerialNumber = text$Value[30]                                      
+ScaleName = text$Value[31]                                            
+Correction = text$Value[32]                                            
+VolumeCorrection_ml = text$Value[33]                               
+WeightCorrection_g = text$Value[34]                                   
+StartStopLine = text$Value[35]                                        
+Start = text$Value[36]                                          
+TensionTopAirEntryPoint_Stopp = text$Value[37]                         
+TensionBottomAirEntryPoint = text$Value[38]                              
+CalculationWaterContents = text$Value[39]                             
+CalculationWaterContents2 = text$Value[40]                             
+InitialWaterContent_Vol_pct = text$Value[41]                               
+DrySoilWeight_g = text$Value[42]                              
+AdditionalSoilParamters = text$Value[43]                              
+Density_g_cm3 = text$Value[44]                                
+Porosity = text$Value[45]                                   
+FittingParameters = text$Value[46]                                   
+INTERPOL = text$Value[47]                                       
+Tensiometer_Mean = text$Value[48]                                       
+Polynomial_degree = text$Value[49]                                      
+wtheta = text$Value[50]                                          
+wk = text$Value[51]                                         
+Fitting = text$Value[52]                                        
+ModelDescription = text$Value[53]                                     
+Notes = text$Value[54]                                    
+GeneralData = text$Value[55]                                   
+SiteCoordinates = text$Value[56]                                 
+SamplingDate = text$Value[57]                               
+SiteDescription = text$Value[58]                                  
+SoilType = text$Value[59]                              
+LandUse = text$Value[60]                               
+SoilPhysicalData = text$Value[61]                           
+Texture = text$Value[62]                        
+SoilTextureClass = text$Value[63]                        
+SamplingDepth = text$Value[64]                        
+OrganicCarbonContent = text$Value[65]                   
+SamplePrep = text$Value[66]                     
+InitialSaturationTime = text$Value[67]                   
+SwellingHandling = text$Value[68]  
+
+dats <- read_xlsx(paste("D:/Dropbox/Projects/Indiana/SoilLab/Data/HyProp/HypropExports/Sites/GriffyWoods", 
+      Flist[k],  sep = "/"), sheet = 5)
+
+fits <- read_xlsx(paste("D:/Dropbox/Projects/Indiana/SoilLab/Data/HyProp/HypropExports/Sites/GriffyWoods", 
+      Flist[k],  sep = "/"), sheet = 8)
+
+d_raw <- data.frame(Sample = Sample, 
+                    MPa = dats$`[MPa]`,
+                    Vol_Water = dats$`Water Content [Vol%]`)
+
+d_fit <- data.frame(Sample = Sample, 
+                    MPa = fits$`[MPa]`,
+                    Vol_Water = fits$`Water Content [Vol%]`)
+
+d_fit_out <- rbind(d_fit_out, d_fit)
+d_raw_out <- rbind(d_raw_out, d_raw)
+
+}
+
+###//Correct and add parameters
+##//Observation Number
+d_raw_out$SampleN <- as.numeric(as.factor(d_raw_out$Sample))
+d_fit_out$SampleN <- as.numeric(as.factor(d_fit_out$Sample))
+
+d_fit_out$MPa <- as.numeric(d_fit_out$MPa)
+d_fit_out$SampleN <- as.numeric(d_fit_out$MPa)
+
+d_fit_out$MPa_Log10 <- (log10(d_fit_out$MPa)) 
+d_raw_out$MPa_Log10 <- log10(abs(d_raw_out$MPa)) 
+
+d_raw_out$Vol_Water_d <- d_raw_out$Vol_Water / 100 
+d_fit_out$Vol_Water_d <- d_fit_out$Vol_Water / 100 
+
+##//Plot the METER curves with the raw data
+ggplot() +
+  
+  geom_line(data = d_fit_out[d_fit_out$Vol_Water>0 & 
+                                d_fit_out$MPa_Log10>-4,], 
+            aes(y = MPa, x = Vol_Water/100), color = "gray", 
+             show.legend = F,  size = 4, alpha = 0.5) +
+  
+  geom_point(data = d_raw_out[d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4,], 
+             aes(y = abs(MPa), x = Vol_Water_d, color = Sample), 
+             show.legend = F,  size = 4, alpha = 0.5) + 
+  
+  #scale_color_manual(values = c("#4D54E8", "#ECC01D", "#A2A197"))+ 
+
+  ylab('Matric Potential [MPa]') +
+  xlab('Soil Water Content [%]') +
+  
+
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x)),
+                limits = c(10^-4, 10^2))+
+  annotation_logticks() +  
+  theme(legend.position = "bottom",
+        axis.text=element_text(size=30),
+        axis.title=element_text(size=30),
+        legend.title=element_text("Species",size=30),
+        legend.text=element_text(size=30))
+
+##//Dataset without some of the weird outliers
+##//Cheat filter for when needed
+cc <- d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4
+
+##//Subsetting raw data form model fitting
+d_fitting <- d_raw_out[d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4,]
+##//Make sure pressures are all positive for analysis
+d_fitting$MPa_Abs <- abs(d_fitting$MPa)
+
+##//Van Genutchen model function
+##//Currently simple nls model may move later
+vg <- function(suction,thetas,thetar,a,n){
+  
+  ((thetas-thetar)/((((a*suction)^n)+1)^(1-(1/n))))+thetar
+
+}
+
+##Isolating Pressure and decimal VWC
+x <- d_fitting$MPa_Abs
+y <- d_fitting$Vol_Water_d
+
+##//Note starting parameters are very sensitive (may need to tweak for each dataset)
+fit <- nls(y~vg(x,thetas,thetar,a,n),start=list(thetas=0.74,thetar=0.02,a=20,n=1.55))
+##//Summary of model fit
+summary(fit)
+##//defining object to extract model parameters 
+fit_sum <- summary(fit)
+
+##//Model parameters and error
+thetas = fit_sum$coefficients[1]
+thetas_error = fit_sum$coefficients[5]
+thetar = fit_sum$coefficients[2]
+thetar_error = fit_sum$coefficients[6]
+alpha = fit_sum$coefficients[3]
+alpha_error = fit_sum$coefficients[7]
+n = fit_sum$coefficients[4]
+n_error = fit_sum$coefficients[8]
+
+##//Model estimates
+myVWC <- seq(min(d_fitting$Vol_Water_d, na.rm = T), 
+             max(d_fitting$Vol_Water_d, na.rm = T),
+             length = 1000)
+myPSI <-  ( (  ((thetar- thetas) / (thetar - myVWC)) ^ (n/(n-1)) - 1 ) ^(1/n) ) / alpha
+
+##//Graphing dataframe
+dOUT <- data.frame(myVWC, myPSI)
+
+##//Plot the METER curves with the raw data
+ggplot() +
+   geom_line(data = d_fit_out, 
+            aes(y = MPa, x = Vol_Water / 100), color = "gray", 
+             show.legend = F,  size = 4, alpha = 0.3) +
+   geom_point(data = d_fitting, 
+             aes(y = abs(MPa), x = Vol_Water_d), color = "blue", 
+             show.legend = F,  size = 4, alpha = 0.2) + 
+   geom_line(data = dOUT, 
+            aes(y = myPSI, x = myVWC), color = "black", 
+             show.legend = F,  size = 4, alpha = 0.7) +
+  ylab('Matric Potential [MPa]') +
+  xlab('Soil Water Content [%]') +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x)),
+                limits = c(10^-4, 10^2))+
+  annotation_logticks() +  
+  theme(legend.position = "bottom",
+        axis.text=element_text(size=30),
+        axis.title=element_text(size=30),
+        legend.title=element_text("Species",size=30),
+        legend.text=element_text(size=30))
+
+##//Model parameters dataframe
+paramsOUT <- data.frame(Parameter = c("$\\theta{s}$",
+                                      "$\\theta{r}$",
+                                      "$\\alpha$",
+                                      "n"),
+                        Value = c(thetas, thetar, alpha, n),
+                        Error = c(thetas_error, thetar_error, alpha_error, n_error))
+
+
+paramsOUT %>%
+  kableExtra::kbl(caption = "Van Genutchen Model Parameters") %>%
+  kableExtra::kable_classic(full_width = F, html_font = "Cambria", font_size = 7)
+
+knitr::kable(paramsOUT)
+
+
+
+
+```
+
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

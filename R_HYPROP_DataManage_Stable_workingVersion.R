@@ -21,25 +21,36 @@ library(brms)
 library(modelr)
 library(sjPlot)
 library(sjstats)
-if (packageVersion("devtools") < 1.6) {
-  
-  if (!require(devtools)) {
-    install.packages("devtools")
-  }
-  install.packages("devtools")
-}
 
-if(!require(nlmrt)){
-  install.packages("nlmrt")
-}
-if(!require(httr)){
-  install.packages("httr")
-}
-if(!require(vadose)){
-  devtools::install_github("gowusu/vadose")
-}
+library(MASS)
+library(scales)
 
-library(vadose)
+
+# if (packageVersion("devtools") < 1.6) {
+#   
+#   if (!require(devtools)) {
+#     install.packages("devtools")
+#   }
+#   install.packages("devtools")
+# }
+# 
+# install.packages("cli")
+# install.packages("devtools")
+# 
+# library(devtools)
+# library(cli)
+# 
+# if(!require(nlmrt)){
+#   install.packages("nlmrt")
+# }
+# if(!require(httr)){
+#   install.packages("httr")
+# }
+# if(!require(vadose)){
+#   devtools::install_github("gowusu/vadose")
+# }
+# 
+# library(vadose)
 
 ##//ggplot theme 
 theme_set(theme_minimal())
@@ -183,116 +194,39 @@ d_raw_out <- rbind(d_raw_out, d_raw)
 
 }
 
-plot(log10(d_fit_out$MPa), d_fit_out$Vol_Water, xlim = c(-6,5))
-plot(log10(d_raw_out$MPa), d_raw_out$Vol_Water, xlim = c(-10,60))
-
-plot((d_fit_out$MPa), d_fit_out$Vol_Water, xlim = c(-1,60))
-plot((d_raw_out$MPa), d_raw_out$Vol_Water, xlim = c(-1.0,60))
-
-
+###//Correct and add parameters
+##//Observation Number
 d_raw_out$SampleN <- as.numeric(as.factor(d_raw_out$Sample))
 d_fit_out$SampleN <- as.numeric(as.factor(d_fit_out$Sample))
 
 d_fit_out$MPa <- as.numeric(d_fit_out$MPa)
 d_fit_out$SampleN <- as.numeric(d_fit_out$MPa)
 
+
 d_fit_out$MPa_Log10 <- (log10(d_fit_out$MPa)) 
 d_raw_out$MPa_Log10 <- log10(abs(d_raw_out$MPa)) 
 
+d_raw_out$Vol_Water_d <- d_raw_out$Vol_Water / 100 
+d_fit_out$Vol_Water_d <- d_fit_out$Vol_Water / 100 
 
+##//Plot the METER curves with the raw data
 ggplot() +
-  #geom_abline(slope = 1, intercept = 0, size = 3, alpha = 0.5, linetype = "dashed") + 
-  geom_point(data = d_fit_out[d_fit_out$Vol_Water>0 & 
-                                d_fit_out$MPa_Log10>-4,], aes(x = MPa_Log10, y = Vol_Water, color = Sample), 
-             show.legend = TRUE,  size = 4) + 
-  #scale_color_manual(values = c("#4D54E8", "#ECC01D", "#A2A197"))+ 
-  #geom_abline(slope = 1, intercept = 0, size = 3) + 
-  xlab('MPa') +
   
-  # ylab(expression(paste("Corr. Soil Efflux  [", mu, "mol CO" [2], " m"^2, "  s "^-1, "] "  ))) +
-  #xlim(-0.2, 2.5)+
-  # ylim(0,5)+
-  theme(legend.position = "bottom",
-        axis.text=element_text(size=30),
-        axis.title=element_text(size=30),
-        legend.title=element_text("Species",size=30),
-        legend.text=element_text(size=30))
-
-ggplot() +
-  #geom_abline(slope = 1, intercept = 0, size = 3, alpha = 0.5, linetype = "dashed") + 
-  geom_point(data = d_fit_out[d_fit_out$Vol_Water>0 & 
-                                d_fit_out$MPa_Log10>-4,], aes(y = MPa, x = Vol_Water/100, color = Sample), 
-             show.legend = TRUE,  size = 4) + 
-  #scale_color_manual(values = c("#4D54E8", "#ECC01D", "#A2A197"))+ 
-  #geom_abline(slope = 1, intercept = 0, size = 3) + 
-  #ylab('MPa') +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x)))+
-  # ylab(expression(paste("Corr. Soil Efflux  [", mu, "mol CO" [2], " m"^2, "  s "^-1, "] "  ))) +
-  #xlim(-0.2, 2.5)+
-  # ylim(0,5)+
-  theme(legend.position = "bottom",
-        axis.text=element_text(size=30),
-        axis.title=element_text(size=30),
-        legend.title=element_text("Species",size=30),
-        legend.text=element_text(size=30))
-
-
-d_raw_out$Vol_Water_d <- d_raw_out$Vol_Water / 100
-ggplot() +
-  #geom_abline(slope = 1, intercept = 0, size = 3, alpha = 0.5, linetype = "dashed") + 
-  geom_point(data = d_raw_out[d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10>-4,],
-             aes(x = MPa_Log10, y = Vol_Water_d, color = Sample), 
-             show.legend = TRUE,  size = 4) + 
-  #scale_color_manual(values = c("#4D54E8", "#ECC01D", "#A2A197"))+ 
-  #geom_abline(slope = 1, intercept = 0, size = 3) + 
-  xlab('Log10 MPa') +
+  geom_line(data = d_fit_out[d_fit_out$Vol_Water>0 & 
+                                d_fit_out$MPa_Log10>-4,], 
+            aes(y = MPa, x = Vol_Water/100), color = "gray", 
+             show.legend = TRUE,  size = 4, alpha = 0.5) +
   
-  # ylab(expression(paste("Corr. Soil Efflux  [", mu, "mol CO" [2], " m"^2, "  s "^-1, "] "  ))) +
- # xlim(-0.2, 2.5)+
-  # ylim(0,5)+
-  theme(legend.position = "bottom",
-        axis.text=element_text(size=30),
-        axis.title=element_text(size=30),
-        legend.title=element_text("Species",size=30),
-        legend.text=element_text(size=30))
-
-
-ggplot() +
-  #geom_abline(slope = 1, intercept = 0, size = 3, alpha = 0.5, linetype = "dashed") + 
-  geom_point(data = d_raw_out[d_raw_out$Vol_Water>0,],
-             aes(x = abs(MPa), y = Vol_Water_d, color = Sample), 
-             show.legend = TRUE,  size = 4) + 
-  #scale_color_manual(values = c("#4D54E8", "#ECC01D", "#A2A197"))+ 
-  #geom_abline(slope = 1, intercept = 0, size = 3) + 
-  xlab('Log10 MPa') +
-  
-  # ylab(expression(paste("Corr. Soil Efflux  [", mu, "mol CO" [2], " m"^2, "  s "^-1, "] "  ))) +
-  # xlim(-0.2, 2.5)+
-  # ylim(0,5)+
-  theme(legend.position = "bottom",
-        axis.text=element_text(size=30),
-        axis.title=element_text(size=30),
-        legend.title=element_text("Species",size=30),
-        legend.text=element_text(size=30))
-
-
-library(MASS)
-library(scales)
-
-plot(d_raw_out$Vol_Water, log10((abs(d_raw_out$MPa))))
-ggplot() +
-  #geom_abline(slope = 1, intercept = 0, size = 3, alpha = 0.5, linetype = "dashed") + 
   geom_point(data = d_raw_out[d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4,], 
              aes(y = abs(MPa), x = Vol_Water_d, color = Sample), 
-             show.legend = TRUE,  size = 4) + 
-  #scale_color_manual(values = c("#4D54E8", "#ECC01D", "#A2A197"))+ 
-  #geom_abline(slope = 1, intercept = 0, size = 3) + 
- # ylab('Log10 MPa') +
+             show.legend = TRUE,  size = 4, alpha = 0.5) + 
   
-  # ylab(expression(paste("Corr. Soil Efflux  [", mu, "mol CO" [2], " m"^2, "  s "^-1, "] "  ))) +
-  # xlim(-0.2, 2.5)+
- # ylim(0,-5)+
+  scale_color_manual(values = c("#4D54E8", "#ECC01D", "#A2A197"))+ 
+
+  ylab('Matric Potential [MPa]') +
+  xlab('Soil Water Content [%]') +
+  
+
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x)),
                 limits = c(10^-4, 10^2))+
@@ -304,37 +238,76 @@ ggplot() +
         legend.text=element_text(size=30))
 
 
-
-ggplot() +
-  #geom_abline(slope = 1, intercept = 0, size = 3, alpha = 0.5, linetype = "dashed") + 
-  geom_point(data = d_raw_out[d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4,], 
-             aes(y = abs(MPa), x = Vol_Water_d, color = Sample), 
-             show.legend = TRUE,  size = 4) + 
-  #scale_color_manual(values = c("#4D54E8", "#ECC01D", "#A2A197"))+ 
-  #geom_abline(slope = 1, intercept = 0, size = 3) + 
-  # ylab('Log10 MPa') +
-  
-  # ylab(expression(paste("Corr. Soil Efflux  [", mu, "mol CO" [2], " m"^2, "  s "^-1, "] "  ))) +
-  # xlim(-0.2, 2.5)+
-  # ylim(0,-5)+
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x)),
-                limits = c(10^-4, 10^2))+
-  annotation_logticks() +  
-  theme(legend.position = "bottom",
-        axis.text=element_text(size=30),
-        axis.title=element_text(size=30),
-        legend.title=element_text("Species",size=30),
-        legend.text=element_text(size=30))
-
-
-
+##//Dataset without some of the weird outliers
+##//Cheat filter for when needed
 cc <- d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4
 
-
+##//Subsetting raw data form model fitting
 d_fitting <- d_raw_out[d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4,]
-d_fitting$theta_r <- min(d_fitting$Vol_Water[cc], na.rm = T)
-d_fitting$theta_s <- max(d_fitting$Vol_Water[cc], na.rm = T)
+##//Make sure pressures are all positive for analysis
+d_fitting$MPa_Abs <- abs(d_fitting$MPa)
+
+##//Van Genutchen model function
+##//Currently simple nls model may move later
+vg <- function(suction,thetas,thetar,a,n){
+  
+  ((thetas-thetar)/((((a*suction)^n)+1)^(1-(1/n))))+thetar
+
+}
+
+##Isolating Pressure and decimal VWC
+x <- d_fitting$MPa_Abs
+y <- d_fitting$Vol_Water_d
+
+##//Note starting parameters are very sensitive (may need to tweak for each dataset)
+fit <- nls(y~vg(x,thetas,thetar,a,n),start=list(thetas=0.74,thetar=0.02,a=20,n=1.55))
+##//Summary of model fit
+summary(fit)
+##//defining object to extract model parameters 
+fit_sum <- summary(fit)
+
+##//Model parameters and error
+thetas = fit_sum$coefficients[1]
+thetas_error = fit_sum$coefficients[5]
+thetar = fit_sum$coefficients[2]
+thetar_error = fit_sum$coefficients[6]
+alpha = fit_sum$coefficients[3]
+alpha_error = fit_sum$coefficients[7]
+n = fit_sum$coefficients[4]
+n_error = fit_sum$coefficients[8]
+
+
+tests <-   ((thetas-thetar)/((((alpha*x)^n)+1)^(1-(1/n))))+thetar
+tests2 <-  ( (  ((thetar- thetas) / (thetar - y)) ^ (n/(n-1)) - 1 ) ^(1/n) ) / alpha
+plot(tests,log10(d_fitting$MPa_Abs))
+points(d_fitting$Vol_Water_d, log10(d_fitting$MPa_Abs), col = "blue", pch = 16)
+
+plot(log10(tests2)~d_fitting$Vol_Water_d)
+points(d_fitting$Vol_Water_d, log10(d_fitting$MPa_Abs), col = "blue", pch = 16)
+
+
+myVWC <- seq(0, 0.8, length = 1000)
+myPSI <-  ( (  ((thetar- thetas) / (thetar - myVWC)) ^ (n/(n-1)) - 1 ) ^(1/n) ) / alpha
+
+plot(myVWC, myPSI)
+plot(myVWC, log10(myPSI))
+
+
+plot(log10(d_fit_out$MPa), d_fit_out$Vol_Water, xlim = c(-6,5))
+points(log10(myPSI),myVWC*100,  col = "red")
+
+
+
+
+##################################################################################
+####//BELOW IS SCARY
+##################################################################################
+
+plot(log10(abs(d_raw_out$MPa)), d_raw_out$Vol_Water, xlim = c(-10,60))
+
+
+
+
 
 
 fits <- nls( log10(d_fitting$MPa) ~ ( (  ((d_fitting$theta_r - d_fitting$theta_s) / (d_fitting$theta_r - d_fitting$Vol_Water)) ^ (n/(n-1)) - 1 ) ^(1/n) ) / alpha,
@@ -378,18 +351,115 @@ m <- 1 - 1 / n
 d_raw_out$Vol_Water_d <- d_raw_out$Vol_Water / 100
 
 
-mytheta <- seq(0.1,80, length = 100)
+mytheta <- seq(0.1,74, length = 20000)
 
-mypsi <- ( (  ((2.01- 74.17) / (2.01 - mytheta)) ^ (5/(5-1)) - 1 ) ^(1/5) ) / 0.5
-
-plot(mypsi ~ mytheta)
+#mypsi <- ( (  ((2.01- 74.17) / (2.01 - mytheta)) ^ (5/(5-1)) - 1 ) ^(1/5) ) / 0.5
 
 
 d_fitting <- d_raw_out[d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4,]
-d_fitting$theta_r <- min(d_fitting$Vol_Water[cc], na.rm = T)
-d_fitting$theta_s <- max(d_fitting$Vol_Water[cc], na.rm = T)
-d_fitting$MPa_Log10
+# d_fitting$theta_r <- min(d_fitting$Vol_Water[cc], na.rm = T)
+# d_fitting$theta_s <- max(d_fitting$Vol_Water[cc], na.rm = T)
+# d_fitting$MPa_Log10
 
+d_fitting$A <- (min(d_fitting$Vol_Water[cc], na.rm = T) - max(d_fitting$Vol_Water[cc], na.rm = T)) /
+  (min(d_fitting$Vol_Water[cc], na.rm = T) - d_fitting$Vol_Water) 
+
+
+
+mod <- nls()
+
+plot(d_fitting$A, d_fitting$MPa)
+
+n <- 0.5
+
+m <- (1 - 1/n)
+
+B <- A^(n/(n-1)) - 1
+
+C <- B^(1/n)
+
+D <- C / .5
+D
+
+plot(mytheta, (D))
+
+plot(mytheta, log10(D), ylim=c(-4,2))
+points(d_fitting$Vol_Water, log10(abs(d_fitting$MPa)), pch = 15)
+
+d_fitting$MPa_Abs <- abs(d_fitting$MPa)
+
+formula <- bf(
+  MPa_Abs ~ ((A^(n/(n-1)) - 1) ^(1/n))  / alpha,
+  alpha ~ 1,
+  n ~ 1,
+  sigma ~ 1,
+  nl = TRUE)
+
+# quick and dirty priors. you need priors to even fit a model
+prior1 <- c(
+  prior(uniform(-100, 100), nlpar = "alpha"),
+  prior(uniform(-100, 100), nlpar = "n"))
+
+
+hist((log10(d_fitting$MPa_Abs)))
+
+fit <- brm(
+  formula,
+  data = d_fitting,
+  prior = prior1,
+  family =  "lognormal",
+  iter = 50000,
+  chains = 4,
+  # cores = 4,
+  control = list(adapt_delta = 0.90, max_treedepth = 15))
+summary(fit, prob = 0.89)
+
+plot_model(fit, type = "pred", show.data = TRUE,
+           show.values = TRUE, terms = c("Vol_Water")) +
+  theme_bw()
+bayes_R2(fit, prob = c(0.055, 0.945))
+
+
+
+## Not run: 
+#optimisation with single data
+datartc=read.csv(system.file("ext","sys","retentionVG.csv",package="vadose"))
+modrtc<-vg(data=datartc,h="h",theta="theta",thr=0.1, ths=0.1, alp=0.1, n=1)
+plot(modrtc)
+
+#optimisation with group data isric
+
+data=read.csv(system.file("ext","sys","isric2.csv",package="vadose"))
+#optimisation with group data
+#used public initials and multiple Ks
+modisrc<-vg(data=data,h="x",theta="y",m="b",thr=0.1, ths=0.1, alp=0.1, n=1,group="Sample",
+            Ks=c("Sand","Clay","Silt","silty clay loam"),para="soil")
+modisrc<-vg(data=data,h="x",theta="y",m="b",thr=0.1, ths=0.3, alp=0.01, n=2,group="Sample")
+plot(modisrc)
+mod=vg(h=200)
+
+## End(Not run)
+
+
+
+
+\ 0.02\ +\ \left(0.74-0.02\right)\cdot\left[1\ +\ \left(a\cdot x\right)^{n}\right]^{-\left(1-\frac{1}{n}\right)}
+
+min(d_fitting$MPa_Abs[cc], na.rm = T)
+d_fitting$Vol_Water ~ min(d_fitting$Vol_Water[cc], na.rm = T) + 
+       ((max(d_fitting$Vol_Water[cc], na.rm = T) - 
+               (min(d_fitting$Vol_Water[cc], na.rm = T)))) * ((1 + Alpha * (d_fitting$MPa_Abs*-1))^n)^(1-1/n)
+     
+
+d_fitting$A <- (min(d_fitting$Vol_Water[cc], na.rm = T) - max(d_fitting$Vol_Water[cc], na.rm = T)) /
+  (min(d_fitting$Vol_Water[cc], na.rm = T) - d_fitting$Vol_Water) 
+
+
+
+
+
+
+plot(d_fitting$Vol_Water, d_fitting$MPa)
 
 fits <- nls( log10(d_fitting$MPa_Log10) ~ ( (  ((d_fitting$theta_r - d_fitting$theta_s) / (d_fitting$theta_r - d_fitting$Vol_Water)) ^ (n/(n-1)) - 1 ) ^(1/n) ) / alpha,
              start = list(alpha = 0.5, n = 15), data = d_fitting  ) 

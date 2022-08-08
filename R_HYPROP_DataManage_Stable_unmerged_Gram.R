@@ -29,6 +29,12 @@ if (packageVersion("devtools") < 1.6) {
   install.packages("devtools")
 }
 
+install.packages("cli")
+install.packages("devtools")
+
+library(devtools)
+library(cli)
+
 if(!require(nlmrt)){
   install.packages("nlmrt")
 }
@@ -378,18 +384,115 @@ m <- 1 - 1 / n
 d_raw_out$Vol_Water_d <- d_raw_out$Vol_Water / 100
 
 
-mytheta <- seq(0.1,80, length = 100)
+mytheta <- seq(0.1,74, length = 20000)
 
-mypsi <- ( (  ((2.01- 74.17) / (2.01 - mytheta)) ^ (5/(5-1)) - 1 ) ^(1/5) ) / 0.5
-
-plot(mypsi ~ mytheta)
+#mypsi <- ( (  ((2.01- 74.17) / (2.01 - mytheta)) ^ (5/(5-1)) - 1 ) ^(1/5) ) / 0.5
 
 
 d_fitting <- d_raw_out[d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4,]
-d_fitting$theta_r <- min(d_fitting$Vol_Water[cc], na.rm = T)
-d_fitting$theta_s <- max(d_fitting$Vol_Water[cc], na.rm = T)
-d_fitting$MPa_Log10
+# d_fitting$theta_r <- min(d_fitting$Vol_Water[cc], na.rm = T)
+# d_fitting$theta_s <- max(d_fitting$Vol_Water[cc], na.rm = T)
+# d_fitting$MPa_Log10
 
+d_fitting$A <- (min(d_fitting$Vol_Water[cc], na.rm = T) - max(d_fitting$Vol_Water[cc], na.rm = T)) /
+  (min(d_fitting$Vol_Water[cc], na.rm = T) - d_fitting$Vol_Water) 
+
+
+
+mod <- nls()
+
+plot(d_fitting$A, d_fitting$MPa)
+
+n <- 0.5
+
+m <- (1 - 1/n)
+
+B <- A^(n/(n-1)) - 1
+
+C <- B^(1/n)
+
+D <- C / .5
+D
+
+plot(mytheta, (D))
+
+plot(mytheta, log10(D), ylim=c(-4,2))
+points(d_fitting$Vol_Water, log10(abs(d_fitting$MPa)), pch = 15)
+
+d_fitting$MPa_Abs <- abs(d_fitting$MPa)
+
+formula <- bf(
+  MPa_Abs ~ ((A^(n/(n-1)) - 1) ^(1/n))  / alpha,
+  alpha ~ 1,
+  n ~ 1,
+  sigma ~ 1,
+  nl = TRUE)
+
+# quick and dirty priors. you need priors to even fit a model
+prior1 <- c(
+  prior(uniform(-100, 100), nlpar = "alpha"),
+  prior(uniform(-100, 100), nlpar = "n"))
+
+
+hist((log10(d_fitting$MPa_Abs)))
+
+fit <- brm(
+  formula,
+  data = d_fitting,
+  prior = prior1,
+  family =  "lognormal",
+  iter = 50000,
+  chains = 4,
+  # cores = 4,
+  control = list(adapt_delta = 0.90, max_treedepth = 15))
+summary(fit, prob = 0.89)
+
+plot_model(fit, type = "pred", show.data = TRUE,
+           show.values = TRUE, terms = c("Vol_Water")) +
+  theme_bw()
+bayes_R2(fit, prob = c(0.055, 0.945))
+
+
+
+## Not run: 
+#optimisation with single data
+datartc=read.csv(system.file("ext","sys","retentionVG.csv",package="vadose"))
+modrtc<-vg(data=datartc,h="h",theta="theta",thr=0.1, ths=0.1, alp=0.1, n=1)
+plot(modrtc)
+
+#optimisation with group data isric
+
+data=read.csv(system.file("ext","sys","isric2.csv",package="vadose"))
+#optimisation with group data
+#used public initials and multiple Ks
+modisrc<-vg(data=data,h="x",theta="y",m="b",thr=0.1, ths=0.1, alp=0.1, n=1,group="Sample",
+            Ks=c("Sand","Clay","Silt","silty clay loam"),para="soil")
+modisrc<-vg(data=data,h="x",theta="y",m="b",thr=0.1, ths=0.3, alp=0.01, n=2,group="Sample")
+plot(modisrc)
+mod=vg(h=200)
+
+## End(Not run)
+
+
+
+
+\ 0.02\ +\ \left(0.74-0.02\right)\cdot\left[1\ +\ \left(a\cdot x\right)^{n}\right]^{-\left(1-\frac{1}{n}\right)}
+
+min(d_fitting$MPa_Abs[cc], na.rm = T)
+d_fitting$Vol_Water ~ min(d_fitting$Vol_Water[cc], na.rm = T) + 
+       ((max(d_fitting$Vol_Water[cc], na.rm = T) - 
+               (min(d_fitting$Vol_Water[cc], na.rm = T)))) * ((1 + Alpha * (d_fitting$MPa_Abs*-1))^n)^(1-1/n)
+     
+
+d_fitting$A <- (min(d_fitting$Vol_Water[cc], na.rm = T) - max(d_fitting$Vol_Water[cc], na.rm = T)) /
+  (min(d_fitting$Vol_Water[cc], na.rm = T) - d_fitting$Vol_Water) 
+
+
+
+
+
+
+plot(d_fitting$Vol_Water, d_fitting$MPa)
 
 fits <- nls( log10(d_fitting$MPa_Log10) ~ ( (  ((d_fitting$theta_r - d_fitting$theta_s) / (d_fitting$theta_r - d_fitting$Vol_Water)) ^ (n/(n-1)) - 1 ) ^(1/n) ) / alpha,
              start = list(alpha = 0.5, n = 15), data = d_fitting  ) 

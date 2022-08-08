@@ -303,12 +303,10 @@ ggplot() +
         legend.title=element_text("Species",size=30),
         legend.text=element_text(size=30))
 
-
-
 ggplot() +
   #geom_abline(slope = 1, intercept = 0, size = 3, alpha = 0.5, linetype = "dashed") + 
-  geom_point(data = d_raw_out[d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4,], 
-             aes(y = abs(MPa), x = Vol_Water_d, color = Sample), 
+  geom_point(data = d_raw_out[d_raw_out$Vol_Water>=0 & d_raw_out$MPa_Log10> -4,], 
+             aes(y = abs(MPa), x = Vol_Water_d, color = MPa_Log10), 
              show.legend = TRUE,  size = 4) + 
   #scale_color_manual(values = c("#4D54E8", "#ECC01D", "#A2A197"))+ 
   #geom_abline(slope = 1, intercept = 0, size = 3) + 
@@ -326,7 +324,6 @@ ggplot() +
         axis.title=element_text(size=30),
         legend.title=element_text("Species",size=30),
         legend.text=element_text(size=30))
-
 
 
 cc <- d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4
@@ -380,9 +377,12 @@ d_raw_out$Vol_Water_d <- d_raw_out$Vol_Water / 100
 
 mytheta <- seq(0.1,80, length = 100)
 
-mypsi <- ( (  ((2.01- 74.17) / (2.01 - mytheta)) ^ (5/(5-1)) - 1 ) ^(1/5) ) / 0.5
+mypsi <- ( (  ((2.01- 74.17) / (2.01 - mytheta)) ^ (4/(4-1)) - 1 ) ^(1/4) ) / 0.3
 
-plot(mypsi ~ mytheta)
+plot(log10(mypsi) ~ mytheta)
+points(d_raw_out$MPa_Log10[d_raw_out$MPa_Log10_adj>0]~d_raw_out$Vol_Water[d_raw_out$MPa_Log10_adj>0])
+
+plot(d_raw_out$MPa_Log10[d_raw_out$MPa_Log10_adj>0]~d_raw_out$Vol_Water[d_raw_out$MPa_Log10_adj>0])
 
 
 d_fitting <- d_raw_out[d_raw_out$Vol_Water>0 & d_raw_out$MPa_Log10> -4,]

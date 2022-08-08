@@ -21,7 +21,7 @@ theme_set(theme_minimal())
 GoAvsGo <- c("#6F263D", "#236192", "#A2AAAD", "#000000")
 
 ##//Where is the data
-setwd("D:/Dropbox/Projects/Indiana/SoilLab/Data/KSat/RawData/Griffy_20220216")
+setwd("D:/Dropbox/Projects/Indiana/SoilLab/Data/KSat/RawData/GreenhouseSoils_20220905")
 dir()
 
 ##//List of files in the directory
@@ -242,9 +242,30 @@ Fdat$Runtime_h <- Fdat$Runtime_s / (60*60)
 
 
 ##//Take in a look
-cc <- Fdat$mylocates!="downslope" & Fdat$Fitting_cm>0 & Fdat$FittingParameter_r2>=0.999 & Fdat$myreps!="r2"
+cc <- Fdat$FittingParameter_r2>=0.999 & Fdat$Runtime_h>0
+plot(Fdat$PressureHead_cm[cc] ~ Fdat$Runtime_s[cc], col = as.factor(Fdat$myreps), pch  = 15, cex = 1.5)
 plot(Fdat$PressureHead_cm[cc] ~ Fdat$Runtime_s[cc], col = as.factor(Fdat$myreps), pch  = 15, cex = 1.5)
 
+plot(Fdat$PressureHead_cm[cc] ~ Fdat$Runtime_h[cc])
+
+names(Fdat)
+
+Fdat$ks <- (Fdat$A_bur_cm_2 / Fdat$A_sample_cm_2)  * Fdat$L_sample_cm * Fdat$FittingParameter_b_s
+hist(ks)
+hist(Fdat$FittingParameter_b_s)
+
+V = Fdat$FittingParameter_a_cm
+Tmeas = Fdat$Runtime_h
+dP = Fdat$PressureHead_cm
+L = Fdat$L_sample_cm
+A = Fdat$A_sample_cm_2
+
+plot(Fdat$KsSoil_m_s, Fdat$ks)
+
+hist(Fdat$FittingParameter_a_cm[cc])
+
+outs <- calcKS(V, Tmeas, L, A, dP)
+plot(outs)
 
 ##//Look at it in ggplot
 unique(Fdat$File[Fdat$mylocates=="griffy"])
